@@ -1,0 +1,14 @@
+services:
+  evolve:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      EVOLVE_DB: /app/data/evolve.db
+      EVOLVE_SECURE_COOKIES: ${EVOLVE_SECURE_COOKIES:-false}
+      EVOLVE_ORIGINS: ${EVOLVE_ORIGINS:-}
+    volumes:
+      - evolve-data:/app/data
+    restart: unless-stopped
+volumes:
+  evolve-data:
