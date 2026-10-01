@@ -12,7 +12,35 @@ class Model(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
+class PersonalDetails(Model):
+    display_name: str = Field(default="", max_length=80)
+    age: int | None = Field(default=None, ge=1, le=120)
+    phone: str = Field(default="", max_length=30, pattern=r"^[0-9+().\- ]*$")
+    city: str = Field(default="", max_length=100)
+    country: str = Field(default="", max_length=100)
+    occupation: str = Field(default="", max_length=150)
+    education: str = Field(default="", max_length=200)
+    about: str = Field(default="", max_length=1000)
+    interests: str = Field(default="", max_length=300)
+    strengths: str = Field(default="", max_length=500)
+    challenges: str = Field(default="", max_length=500)
+    routine: str = Field(default="", max_length=500)
+
+    @field_validator("display_name")
+    @classmethod
+    def name_length(cls, value):
+        if value and len(value) < 2:
+            raise ValueError("Use at least two characters for your name")
+        return value
+
+
+class PersonalUpdate(Model):
+    personal: PersonalDetails
+    aspiration: str = Field(default="", max_length=500)
+
+
 class Profile(Model):
+    personal: PersonalDetails = Field(default_factory=PersonalDetails)
     timezone: str = "Asia/Kolkata"
     currency: Literal["INR", "USD", "EUR", "GBP"] = "INR"
     daily_minutes: int = Field(default=45, ge=5, le=240)

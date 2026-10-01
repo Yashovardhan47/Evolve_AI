@@ -436,3 +436,107 @@ def test_private_financial_and_notification_records(account):
         )
         assert other.get("/api/export").json()["records"]["ledger"] == []
         assert other.get("/api/state").json()["finance"]["budgets"] == []
+
+
+def test_personal_profile_updates_dashboard_and_survives_preferences(account):
+    saved = account.put(
+        "/api/personal-details",
+        json={
+            "personal": {
+                "display_name": "New Learner",
+                "age": 22,
+                "phone": "+91 98765 43210",
+                "city": "Anantapur",
+                "country": "India",
+                "occupation": "Student",
+                "education": "CSE – Data Science",
+                "interests": "Cricket, Python",
+                "strengths": "Consistency",
+                "challenges": "Presentations",
+                "routine": "Classes during the day",
+                "about": "Learning steadily",
+            },
+            "aspiration": "Communicate confidently",
+        },
+    )
+    assert saved.status_code == 200
+    assert saved.json()["name"] == "New Learner"
+    state = account.get("/api/state").json()
+    assert state["profile"]["personal"]["city"] == "Anantapur"
+    assert state["profile"]["aspiration"] == "Communicate confidently"
+    preferences = {k: v for k, v in state["profile"].items() if k != "personal"}
+    preferences["daily_minutes"] = 30
+    assert account.put("/api/profile", json=preferences).status_code == 200
+    assert (
+        account.get("/api/state").json()["profile"]["personal"]["phone"]
+        == "+91 98765 43210"
+    )
+    account.post("/api/auth/logout", json={})
+    account.post(
+        "/api/auth/login",
+        json={"email": "learner@example.com", "password": "a-long-test-password"},
+    )
+    assert account.get("/api/auth/me").json()["name"] == "New Learner"
+    assert account.get("/api/auth/me").json()["email"] == "learner@example.com"
+    assert (
+        account.get("/api/export").json()["user"]["profile"]["personal"]["education"]
+        == "CSE – Data Science"
+    )
+
+
+def test_personal_profile_validation(account):
+    for details in [
+        {"display_name": "A"},
+        {"age": 121},
+        {"phone": "<script>alert(1)</script>"},
+        {"user_id": 99},
+    ]:
+        assert (
+            account.put("/api/personal-details", json={"personal": details}).status_code
+            == 422
+        )
+    assert (
+        account.put(
+            "/api/personal-details",
+            json={"personal": {"display_name": "Learner", "age": None, "phone": ""}},
+        ).status_code
+        == 200
+    )
+
+
+def test_personal_details_private_and_legacy_records(account):
+    from app.db import connect
+    import json
+
+    uid = account.get("/api/auth/me").json()["id"]
+    with connect() as con:
+        p = json.loads(
+            con.execute("SELECT profile FROM users WHERE id=?", (uid,)).fetchone()[0]
+        )
+        p.pop("personal", None)
+        con.execute("UPDATE users SET profile=? WHERE id=?", (json.dumps(p), uid))
+    assert (
+        account.get("/api/state").json()["profile"]["personal"]["display_name"]
+        == "Test Learner"
+    )
+    account.put(
+        "/api/personal-details",
+        json={
+            "personal": {
+                "display_name": "Private Learner",
+                "phone": "1234567890",
+                "city": "Private city",
+            }
+        },
+    )
+    with TestClient(app, headers={"X-Evolve-Request": "1"}) as other:
+        other.post(
+            "/api/auth/register",
+            json={
+                "name": "Other",
+                "email": "other@example.com",
+                "password": "another-long-password",
+            },
+        )
+        assert other.get("/api/state").json()["profile"]["personal"]["phone"] == ""
+        assert "Private city" not in str(other.get("/api/export").json())

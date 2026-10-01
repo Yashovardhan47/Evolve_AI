@@ -6,10 +6,15 @@ from datetime import datetime, timedelta
 from statistics import mean
 from zoneinfo import ZoneInfo
 from .db import connect
+from .models import PersonalDetails
 
 
 def profile(user):
-    return json.loads(user["profile"])
+    data = json.loads(user["profile"])
+    data["personal"] = PersonalDetails(**data.get("personal", {})).model_dump()
+    if not data["personal"]["display_name"]:
+        data["personal"]["display_name"] = user["name"]
+    return data
 
 
 def local_now(user):

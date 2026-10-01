@@ -204,11 +204,32 @@ def update_profile(data: m.Profile, user=Depends(current_user)):
                 "Currency is locked while financial records exist. Export and remove them before changing currency.",
             )
     with connect() as con:
+        updated = data.model_dump()
+        updated["personal"] = profile(user)["personal"]
         con.execute(
             "UPDATE users SET profile=? WHERE id=?",
-            (data.model_dump_json(), user["id"]),
+            (json.dumps(updated), user["id"]),
         )
-    return data
+    return updated
+
+
+@app.put("/api/personal-details")
+def personal_details(data: m.PersonalUpdate, user=Depends(current_user)):
+    updated = profile(user)
+    personal = data.personal.model_dump()
+    name = personal["display_name"] or user["name"]
+    personal["display_name"] = name
+    updated["personal"] = personal
+    updated["aspiration"] = data.aspiration
+    with connect() as con:
+        con.execute(
+            "UPDATE users SET profile=?, name=? WHERE id=?",
+            (json.dumps(updated), name, user["id"]),
+        )
+        current = dict(
+            con.execute("SELECT * FROM users WHERE id=?", (user["id"],)).fetchone()
+        )
+    return public_user(current)
 
 
 @app.get("/api/state")

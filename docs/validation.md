@@ -2,7 +2,7 @@
 
 ## Verified
 
-- **16 API integration/algorithm tests pass** with Python 3.12. The tests use isolated temporary databases.
+- **19 API integration/algorithm tests pass** with Python 3.12. The tests use isolated temporary databases.
 - JavaScript syntax checks pass for the browser application and helper modules.
 - A headless Chromium walkthrough exercises all nine views at desktop (1440 × 1050) and mobile (390 × 844) sizes, with no uncaught JavaScript errors or unintended body overflow.
 - Browser flows verified: isolated demo account, real account creation, preferences, goal creation, a transaction with decimal precision, randomized experiment creation and result logging, check-in update and plan refresh, and arithmetic scenario comparison.
@@ -19,3 +19,9 @@ Authentication and logout, HttpOnly/SameSite/Secure cookie configuration, privat
 - Browser checks and a visual review do not replace an accessibility audit across assistive technologies.
 - No pilot-user study, model-calibration study, clinical validation or financial-outcome study has been performed. The application stores feedback; it does not claim positive feedback already exists.
 - The installed Starlette test client emits an upstream deprecation warning for the HTTPX testing adapter; the tests pass.
+
+## Personal profile update
+
+The new Profile route and name/context dashboard summary are implemented in both the Python application and the hosted inspection demo. Additional tests verify validation, legacy profile compatibility, account isolation, preference preservation, name persistence through login and inclusion in export.
+
+A Chromium profile walkthrough verifies saving personal fields, reflecting the name/context on the dashboard, reload persistence, and a 390-pixel mobile layout without body overflow.

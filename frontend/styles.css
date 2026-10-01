@@ -1529,3 +1529,56 @@ dialog .dialog-head button {
 .auth {
   overflow-wrap: anywhere;
 }
+
+/* Personal profile and dashboard summary. */
+.avatar-button {
+  border: 0;
+  cursor: pointer;
+}
+.profile-avatar {
+  width: 76px;
+  height: 76px;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  background: var(--lime);
+}
+.profile-summary h2 {
+  font-size: 1.55rem;
+  margin-bottom: 8px;
+}
+.profile-summary p {
+  margin-top: 6px;
+}
+.profile-divider {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+  margin: 8px 0 22px;
+}
+.profile-divider p {
+  margin-top: 8px;
+}
+.dashboard-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px 18px;
+  margin: -5px 0 22px;
+}
+.dashboard-profile .body {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-profile p {
+  margin-top: 4px;
+}
+@media (max-width: 720px) {
+  .dashboard-profile {
+    flex-wrap: wrap;
+  }
+  .dashboard-profile .body {
+    flex-basis: calc(100% - 60px);
+  }
+}
