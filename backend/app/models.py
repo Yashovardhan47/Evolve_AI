@@ -125,6 +125,22 @@ class HabitLog(Model):
     complete: bool = True
 
 
+class Task(Model):
+    title: str = Field(min_length=2, max_length=150)
+    domain: Domain
+    interest: str = Field(default="", max_length=80)
+    notes: str = Field(default="", max_length=1000)
+    priority: Literal["low", "normal", "high"] = "normal"
+    minutes: int = Field(default=10, ge=1, le=480)
+    due_date: date | None = None
+    recurrence: Literal["none", "daily", "weekdays", "weekly"] = "none"
+    active: bool = True
+
+
+class TaskCompletion(Model):
+    complete: bool = True
+
+
 class Transaction(Model):
     day: date
     kind: Literal["income", "expense"]

@@ -1,8 +1,8 @@
-# Validation — release 1
+# Validation — release 1 with daily task planner
 
 ## Verified
 
-- **19 API integration/algorithm tests pass** with Python 3.12. The tests use isolated temporary databases.
+- **26 API integration/algorithm tests pass** with Python 3.12. The tests use isolated temporary databases.
 - JavaScript syntax checks pass for the browser application and helper modules.
 - A headless Chromium walkthrough exercises all nine views at desktop (1440 × 1050) and mobile (390 × 844) sizes, with no uncaught JavaScript errors or unintended body overflow.
 - Browser flows verified: isolated demo account, real account creation, preferences, goal creation, a transaction with decimal precision, randomized experiment creation and result logging, check-in update and plan refresh, and arithmetic scenario comparison.
@@ -25,3 +25,11 @@ Authentication and logout, HttpOnly/SameSite/Secure cookie configuration, privat
 The new Profile route and name/context dashboard summary are implemented in both the Python application and the hosted inspection demo. Additional tests verify validation, legacy profile compatibility, account isolation, preference preservation, name persistence through login and inclusion in export.
 
 A Chromium profile walkthrough verifies saving personal fields, reflecting the name/context on the dashboard, reload persistence, and a 390-pixel mobile layout without body overflow.
+
+## Daily task planner update
+
+Seven added tests cover six life areas, validation, private CRUD, completion/undo idempotence, overdue handling, rescheduling, recurring weekdays/weekends/weekly dates, pausing, retained history when converting a task into a routine, time reservation, notification preferences/deduplication, export and cascading deletion. Reinitializing a populated database preserves tasks.
+
+A Chromium walkthrough at 1440 × 1050 and 390 × 844 verifies adding a task, completing/undoing it, automatic dashboard counts, interest search, moving to tomorrow, editing, reload persistence, creating/pausing a recurring routine and deleting it. No uncaught JavaScript errors or body overflow were observed. Desktop/mobile task screenshots were inspected. Syntax, Ruff E9/F, formatting and whitespace checks pass.
+
+The hosted demo's browser adapter is checked with Node for task CRUD, completion, validation, history, time reservation, export and reload from local storage. It remains an inspection demo; these checks do not establish a deployed Python backend or closed-tab reminder delivery.

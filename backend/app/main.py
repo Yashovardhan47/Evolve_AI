@@ -31,6 +31,7 @@ from .security import (
     throttle,
     verify,
 )
+from .tasks import scheduled, task_summary
 
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / "frontend"
@@ -331,6 +332,109 @@ def habit(data: m.Habit, user=Depends(current_user)):
         return owned(con, "habits", hid, user)
 
 
+def task_values(data):
+    if data.recurrence != "none" and data.due_date is None:
+        raise HTTPException(422, "Choose a start date for a recurring task")
+    return (
+        data.title,
+        data.domain,
+        data.interest,
+        data.notes,
+        data.priority,
+        data.minutes,
+        data.due_date.isoformat() if data.due_date else None,
+        data.recurrence,
+        int(data.active),
+    )
+
+
+@app.post("/api/tasks", status_code=201)
+def create_task(data: m.Task, user=Depends(current_user)):
+    values = task_values(data)
+    with connect() as con:
+        tid = con.execute(
+            "INSERT INTO tasks(user_id,title,domain,interest,notes,priority,minutes,due_date,recurrence,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+            (user["id"], *values, now()),
+        ).lastrowid
+        result = owned(con, "tasks", tid, user)
+    make_plan(user)
+    return result
+
+
+@app.put("/api/tasks/{tid}")
+def edit_task(tid: int, data: m.Task, user=Depends(current_user)):
+    values = task_values(data)
+    with connect() as con:
+        previous = owned(con, "tasks", tid, user)
+        con.execute(
+            "UPDATE tasks SET title=?,domain=?,interest=?,notes=?,priority=?,minutes=?,due_date=?,recurrence=?,active=? WHERE id=?",
+            (*values, tid),
+        )
+        if previous["recurrence"] != data.recurrence:
+            if previous["completed_at"] and previous["completed_day"]:
+                con.execute(
+                    "INSERT OR IGNORE INTO task_logs VALUES(?,?,?)",
+                    (tid, previous["completed_day"], previous["completed_at"]),
+                )
+            con.execute(
+                "UPDATE tasks SET completed_at=NULL,completed_day=NULL WHERE id=?",
+                (tid,),
+            )
+        result = owned(con, "tasks", tid, user)
+    make_plan(user)
+    return result
+
+
+@app.put("/api/tasks/{tid}/completion")
+def complete_task(tid: int, data: m.TaskCompletion, user=Depends(current_user)):
+    day = today(user)
+    with connect() as con:
+        task = owned(con, "tasks", tid, user)
+        if data.complete and (
+            not task["active"]
+            or (task["recurrence"] != "none" and not scheduled(task, day))
+            or (
+                task["recurrence"] == "none"
+                and task["due_date"]
+                and task["due_date"] > day
+            )
+        ):
+            raise HTTPException(
+                409, "This task is not scheduled for today. Edit its date first."
+            )
+        if task["recurrence"] != "none":
+            if data.complete:
+                con.execute(
+                    "INSERT OR IGNORE INTO task_logs VALUES(?,?,?)", (tid, day, now())
+                )
+            else:
+                con.execute(
+                    "DELETE FROM task_logs WHERE task_id=? AND day=?", (tid, day)
+                )
+        elif data.complete:
+            if not task["completed_at"]:
+                con.execute(
+                    "UPDATE tasks SET completed_at=?,completed_day=? WHERE id=?",
+                    (now(), day, tid),
+                )
+        else:
+            con.execute(
+                "UPDATE tasks SET completed_at=NULL,completed_day=NULL WHERE id=?",
+                (tid,),
+            )
+    make_plan(user)
+    return {"ok": True}
+
+
+@app.delete("/api/tasks/{tid}")
+def delete_task(tid: int, user=Depends(current_user)):
+    with connect() as con:
+        owned(con, "tasks", tid, user)
+        con.execute("DELETE FROM tasks WHERE id=?", (tid,))
+    make_plan(user)
+    return {"ok": True}
+
+
 @app.put("/api/habits/{hid}/log")
 def habit_log(hid: int, data: m.HabitLog, user=Depends(current_user)):
     with connect() as con:
@@ -569,6 +673,16 @@ def notifications(user=Depends(current_user)):
                 "SELECT 1 FROM checkins WHERE user_id=? AND day=?", (user["id"], day)
             ).fetchone()
             alerts = []
+            _, progress = task_summary(con, user["id"], day)
+            remaining = progress["planned_today"] - progress["completed_today"]
+            if remaining and local_now(user).hour >= p["reminder_hour"]:
+                alerts.append(
+                    (
+                        f"tasks-{day}",
+                        "Make room for your chosen tasks",
+                        f"{remaining} task(s) remain today. Do a small step, or adjust your dates to fit your day.",
+                    )
+                )
             if pending_checkin and local_now(user).hour >= p["reminder_hour"]:
                 alerts.append(
                     (
@@ -640,6 +754,7 @@ def export(user=Depends(current_user)):
             for table in [
                 "checkins",
                 "goals",
+                "tasks",
                 "habits",
                 "ledger",
                 "budgets",
@@ -653,6 +768,13 @@ def export(user=Depends(current_user)):
             dict(r)
             for r in con.execute(
                 "SELECT l.* FROM habit_logs l JOIN habits h ON h.id=l.habit_id WHERE h.user_id=?",
+                (user["id"],),
+            )
+        ]
+        data["task_logs"] = [
+            dict(r)
+            for r in con.execute(
+                "SELECT l.* FROM task_logs l JOIN tasks t ON t.id=l.task_id WHERE t.user_id=?",
                 (user["id"],),
             )
         ]

@@ -1531,6 +1531,127 @@ dialog .dialog-head button {
 }
 
 /* Personal profile and dashboard summary. */
+/* Personal tasks extend the existing calm workspace. */
+.task-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+}
+.task-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: white;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.task-tabs button.active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+.task-row {
+  display: flex;
+  gap: 14px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: flex-start;
+}
+.task-row:last-child {
+  border-bottom: 0;
+}
+.task-body {
+  flex: 1;
+  min-width: 0;
+}
+.task-body h3 {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.task-done h3 {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.task-meta .domain {
+  font-size: 0.875rem;
+}
+.task-body p {
+  margin-top: 10px;
+}
+.task-notes {
+  white-space: pre-wrap;
+}
+.task-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.task-priority {
+  color: #995422;
+}
+.task-starters {
+  display: grid;
+  gap: 10px;
+}
+.task-starters button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+  text-align: left;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.task-starters button span:nth-child(2) {
+  flex: 1;
+}
+.task-starters button .domain {
+  font-size: 0.875rem;
+  min-width: 88px;
+}
+.task-starters button:hover {
+  border-color: var(--green);
+}
+.task-row .plan-check:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.task-search .field {
+  min-width: 0;
+}
+.grid.main.task-grid {
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .task-starters button {
+    flex-wrap: wrap;
+  }
+  .task-tabs button {
+    flex: 1 0 auto;
+  }
+  .task-controls .button {
+    font-size: 0.875rem;
+  }
+}
+
 .avatar-button {
   border: 0;
   cursor: pointer;

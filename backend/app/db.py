@@ -23,6 +23,16 @@ CREATE TABLE IF NOT EXISTS goals(
 CREATE TABLE IF NOT EXISTS habits(
  id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
  title TEXT NOT NULL, domain TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS tasks(
+ id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ title TEXT NOT NULL, domain TEXT NOT NULL, interest TEXT NOT NULL DEFAULT '',
+ notes TEXT NOT NULL DEFAULT '', priority TEXT NOT NULL DEFAULT 'normal',
+ minutes INTEGER NOT NULL CHECK(minutes BETWEEN 1 AND 480), due_date TEXT,
+ recurrence TEXT NOT NULL DEFAULT 'none', active INTEGER NOT NULL DEFAULT 1,
+ created_at TEXT NOT NULL, completed_at TEXT, completed_day TEXT);
+CREATE TABLE IF NOT EXISTS task_logs(
+ task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+ day TEXT NOT NULL, completed_at TEXT NOT NULL, PRIMARY KEY(task_id,day));
 CREATE TABLE IF NOT EXISTS habit_logs(
  habit_id INTEGER NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
  day TEXT NOT NULL, PRIMARY KEY(habit_id,day));
@@ -60,6 +70,8 @@ CREATE INDEX IF NOT EXISTS actions_user_day ON actions(user_id,day);
 CREATE INDEX IF NOT EXISTS ledger_user_day ON ledger(user_id,day);
 CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS auth_attempts_key ON auth_attempts(key,at);
+CREATE INDEX IF NOT EXISTS tasks_user_due ON tasks(user_id,due_date);
+INSERT OR IGNORE INTO schema_version VALUES(2);
 """
 
 

@@ -1,4 +1,5 @@
 const paths = {
+  tasks: "M8 3h8v4H8z M6 5H4v16h16V5h-2 M8 11l2 2 4-4 M8 17h8",
   profile: "M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-3a8 8 0 0 1 16 0v3",
   today: "M3 10l9-7 9 7v10H3z M9 20v-7h6v7",
   checkin: "M8 3h8v4H8z M6 5H4v16h16V5h-2 M8 12l2 2 5-5 M8 18h8",

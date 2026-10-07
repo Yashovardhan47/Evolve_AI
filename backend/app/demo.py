@@ -28,6 +28,23 @@ def create_demo():
         ).lastrowid
         user = dict(con.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone())
         day = datetime.fromisoformat(today(user)).date()
+        for title, domain, interest, minutes, recurrence in [
+            ("Take a comfortable movement break", "physical", "Movement", 10, "daily"),
+            ("Record today's spending", "financial", "Money awareness", 5, "none"),
+        ]:
+            con.execute(
+                "INSERT INTO tasks(user_id,title,domain,interest,minutes,due_date,recurrence,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                (
+                    uid,
+                    title,
+                    domain,
+                    interest,
+                    minutes,
+                    day.isoformat(),
+                    recurrence,
+                    now(),
+                ),
+            )
         for i in range(14):
             record_day = (day - timedelta(days=13 - i)).isoformat()
             data = {

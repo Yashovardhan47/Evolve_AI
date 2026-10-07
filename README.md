@@ -7,23 +7,26 @@ Evolve combines daily self-reflection, physical and mental wellbeing observation
 ## What works
 
 - Account creation, sign-in and sign-out with salted scrypt password hashes and expiring HttpOnly sessions.
-- A responsive dashboard, ten functional views, accessible forms, data charts and reduced-motion support.
+- A responsive dashboard, eleven functional views, accessible forms, data charts and reduced-motion support.
 - A separate personal Profile page with optional contact/location, education, occupation, interests, strengths, challenges, routine and development direction. The dashboard reflects saved names and profile context.
 - Optional daily mood, energy, stress, focus, sleep, movement and task check-ins. Missing entries stay missing.
 - Goals with editable next steps, target dates and user-reported progress; habits with daily completion and streaks.
+- A separate **My tasks** planner across physical, mental, financial, productivity, social and learning areas. Add your own interests, notes, priorities, duration estimates and dates; use one-time, daily, weekday or weekly schedules.
+- Complete/undo tasks, edit or pause routines, move one-time tasks to tomorrow, search by interest and filter by area/date/status. The dashboard tracks actual task completion and the planner shows completions across life areas over seven days.
+- Scheduled tasks reserve development time before optional suggestions are generated. Overloaded days are visible; moving a task rebuilds the plan. Manual check-in task counts remain separate self-reports.
 - A personal state model with recent individual baselines and explicitly noncausal associations.
 - Explainable, time-constrained action plans with completion, skipping and usefulness feedback. Smoothed feedback adjusts the ranking of future suggestions.
 - Income/expense records, reusable monthly category budgets and overspending alerts. Money uses integer minor units, not floating-point totals.
 - Balanced, randomized personal experiments comparing everyday routines, with session logs and descriptive outcomes.
 - A what-if calculator for time commitments and recorded spending. Its output is arithmetic, not a predicted health or financial outcome.
-- In-app reminders for daily check-ins, goal dates and budget reviews; optional browser notifications while the tab is open.
+- In-app reminders for daily check-ins, remaining tasks, goal dates and budget reviews; optional browser notifications while the tab is open.
 - Editable priorities, timezone, currency, daily time budget and reminder preferences.
 - User feedback, complete JSON data export, deletion of individual records, and password-confirmed account deletion with cascading data removal.
 - Separate demo accounts populated with fictional records; 24-hour expiry and cleanup at startup and on demo creation.
 
 ## Hosted inspection demo
 
-[Open the interactive demo](https://evolve-ai-demo.kummarayashovardhan.chatgpt.site). This separate hosted demo uses fictional browser-local records; it includes the Profile page and dashboard summary but does not run the Python API.
+[Open the interactive demo](https://evolve-ai-demo.kummarayashovardhan.chatgpt.site). This separate hosted demo uses fictional browser-local records; it includes My tasks, recurring routines, Profile and the dashboard but does not run the Python API.
 
 ## Run locally — Windows PowerShell
 

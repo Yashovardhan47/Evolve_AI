@@ -7,6 +7,7 @@ from statistics import mean
 from zoneinfo import ZoneInfo
 from .db import connect
 from .models import PersonalDetails
+from .tasks import task_summary
 
 
 def profile(user):
@@ -85,6 +86,7 @@ def snapshot(user):
         finance = financial_summary(con, user["id"], day[:7])
         actions = [r for r in rows(con, "actions", user["id"]) if r["day"] == day]
         history = rows(con, "actions", user["id"])
+        tasks, task_progress = task_summary(con, user["id"], day)
     current = next((r["data"] for r in checkins if r["day"] == day), None)
     recent = [
         r
@@ -110,6 +112,8 @@ def snapshot(user):
         "today_checkin": current,
         "baselines": baselines,
         "goals": goals,
+        "tasks": tasks,
+        "task_summary": task_progress,
         "habits": habits,
         "finance": finance,
         "actions": actions,
@@ -304,8 +308,10 @@ def candidates(state):
 
 def make_plan(user):
     state = snapshot(user)
-    remaining = state["profile"]["daily_minutes"] - sum(
-        a["minutes"] for a in state["actions"] if a["status"] == "done"
+    remaining = (
+        state["profile"]["daily_minutes"]
+        - state["task_summary"]["committed_minutes"]
+        - sum(a["minutes"] for a in state["actions"] if a["status"] == "done")
     )
     preserved = {a["key"] for a in state["actions"] if a["status"] != "pending"}
     selected = []

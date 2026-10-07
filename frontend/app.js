@@ -18,6 +18,9 @@ let user,
   route = "today",
   authTab = "register",
   toastTimer;
+let taskFilter = "today",
+  taskArea = "all",
+  taskQuery = "";
 const domains = [
   "physical",
   "mental",
@@ -30,6 +33,7 @@ const labels = {
   today: "Dashboard",
   profile: "My profile",
   checkin: "Daily check-in",
+  tasks: "My tasks",
   goals: "Goals & habits",
   wellbeing: "Mind & body",
   finance: "Money",
@@ -240,13 +244,13 @@ function habitList() {
 }
 function todayView() {
   const c = state.today_checkin;
-  const completion =
-    c?.planned_tasks > 0 && c?.completed_tasks != null
-      ? Math.round((100 * c.completed_tasks) / c.planned_tasks)
-      : null;
+  const progress = state.task_summary;
+  const completion = progress.planned_today
+    ? Math.round((100 * progress.completed_today) / progress.planned_today)
+    : null;
   const done = state.actions.filter((a) => a.status === "done").length;
   const planned = state.actions.filter((a) => a.status !== "skipped").length;
-  return `${heading(`A little progress, ${user.name.split(" ")[0]}.`, state.profile.aspiration ? "Your direction: " + state.profile.aspiration : "Choose what matters today. Leave room for the life around it.", btn(`${icon("plus")} Daily check-in`, "nav-checkin", "light"), state.day === todayLocal() ? "TODAY, AT YOUR PACE" : "YOUR PERSONAL DAY")} ${dashboardProfile()}<div class="grid four">${metric("Physical wellbeing", c?.sleep_hours != null ? `${c.sleep_hours} h` : "—", c?.sleep_hours != null ? "Sleep logged last night" : "Add sleep to your check-in", "physical")}${metric("Mental wellbeing", c?.mood != null ? `${c.mood} / 5` : "—", c?.mood != null ? "Your self-reported mood" : "How are you feeling today?", "mental")}${metric("Money this month", money(state.finance.net_cents), "Logged income minus expenses", "financial")}${metric("Task progress", completion !== null ? `${completion}%` : "—", completion !== null ? `${c.completed_tasks} of ${c.planned_tasks} planned tasks` : "Log tasks to see your progress", "productivity")}</div><div class="grid main section-gap"><div><section class="focus-card"><div><span class="eyebrow">YOUR NEXT SMALL STEP</span><h2>${c ? "A plan for the day you’re having." : "Start with how you’re doing."}</h2><p>${c ? `${state.profile.daily_minutes} minutes set aside for development. ${state.evidence_days} recent check-in days to learn from.` : "A quick check-in gives your plan context. You can leave any question blank."}</p><div class="btn-row">${btn(state.actions.length ? "Refresh my plan" : "Build my plan", "plan", "lime")}${btn("Adjust my priorities", "nav-settings", "ghost")}</div></div>${ring(planned ? (100 * done) / planned : 0, "plan done", true)}</section><section class="card section-gap"><div class="card-header"><div><h2>Your action plan</h2><p class="muted">Small enough to start. Flexible enough to change.</p></div><span class="small muted">${state.actions.filter((a) => a.status === "pending").reduce((s, a) => s + a.minutes, 0)} min left</span></div>${planItems()}</section></div><div class="grid"><section class="card"><div class="card-header"><div><h2>Your week, in perspective</h2><p class="muted">Task completion · last 7 days</p></div>${icon("insights")}</div>${chart()}<div class="insight">${icon("spark")}<p>${state.evidence_days < 7 ? "A few more check-ins will help reveal your personal patterns." : "Look for patterns over several days. One difficult day does not define your progress."}</p></div></section><section class="card"><div class="card-header"><h2>Goals in motion</h2><button class="text-button" data-action="nav" data-route="goals">View all</button></div>${goalList(true)}</section></div></div><section class="card section-gap"><div class="card-header"><div><h2>Make room for your habits</h2><p class="muted">A small repeatable action is a useful place to begin.</p></div>${btn(`${icon("plus")} Add habit`, "add-habit", "light compact")}</div>${habitList()}</section>`;
+  return `${heading(`A little progress, ${user.name.split(" ")[0]}.`, state.profile.aspiration ? "Your direction: " + state.profile.aspiration : "Choose what matters today. Leave room for the life around it.", btn(`${icon("plus")} Daily check-in`, "nav-checkin", "light"), state.day === todayLocal() ? "TODAY, AT YOUR PACE" : "YOUR PERSONAL DAY")} ${dashboardProfile()}<div class="grid four">${metric("Physical wellbeing", c?.sleep_hours != null ? `${c.sleep_hours} h` : "—", c?.sleep_hours != null ? "Sleep logged last night" : "Add sleep to your check-in", "physical")}${metric("Mental wellbeing", c?.mood != null ? `${c.mood} / 5` : "—", c?.mood != null ? "Your self-reported mood" : "How are you feeling today?", "mental")}${metric("Money this month", money(state.finance.net_cents), "Logged income minus expenses", "financial")}${metric("Task progress", completion !== null ? `${completion}%` : "—", completion !== null ? `${progress.completed_today} of ${progress.planned_today} scheduled tasks` : "Add a task to plan your day", "productivity")}</div>${dailyTasks()}<div class="grid main section-gap"><div><section class="focus-card"><div><span class="eyebrow">YOUR NEXT SMALL STEP</span><h2>${c ? "A plan for the day you’re having." : "Start with how you’re doing."}</h2><p>${c ? `${state.profile.daily_minutes} minutes set aside for development. ${state.evidence_days} recent check-in days to learn from.` : "A quick check-in gives your plan context. You can leave any question blank."}</p><div class="btn-row">${btn(state.actions.length ? "Refresh my plan" : "Build my plan", "plan", "lime")}${btn("Adjust my priorities", "nav-settings", "ghost")}</div></div>${ring(planned ? (100 * done) / planned : 0, "plan done", true)}</section><section class="card section-gap"><div class="card-header"><div><h2>Your action plan</h2><p class="muted">Small enough to start. Flexible enough to change.</p></div><span class="small muted">${state.actions.filter((a) => a.status === "pending").reduce((s, a) => s + a.minutes, 0)} min left</span></div>${planItems()}</section></div><div class="grid"><section class="card"><div class="card-header"><div><h2>Your week, in perspective</h2><p class="muted">Self-reported task counts · last 7 days</p></div>${icon("insights")}</div>${chart()}<div class="insight">${icon("spark")}<p>${state.evidence_days < 7 ? "A few more check-ins will help reveal your personal patterns." : "Look for patterns over several days. One difficult day does not define your progress."}</p></div></section><section class="card"><div class="card-header"><h2>Goals in motion</h2><button class="text-button" data-action="nav" data-route="goals">View all</button></div>${goalList(true)}</section></div></div><section class="card section-gap"><div class="card-header"><div><h2>Make room for your habits</h2><p class="muted">A small repeatable action is a useful place to begin.</p></div>${btn(`${icon("plus")} Add habit`, "add-habit", "light compact")}</div>${habitList()}</section>`;
 }
 function todayLocal() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -256,6 +260,151 @@ function todayLocal() {
     day: "2-digit",
   }).format(new Date());
 }
+
+const taskStarters = [
+  ["physical", "Take a comfortable movement break", "Movement", 10],
+  ["mental", "Write one thing that went well today", "Reflection", 5],
+  ["financial", "Record today's spending", "Money awareness", 5],
+  [
+    "productivity",
+    "Make progress on my most important task",
+    "Daily focus",
+    20,
+  ],
+  ["social", "Check in with someone I care about", "Connection", 10],
+  ["learning", "Practice a skill I am interested in", "Learning", 15],
+];
+function taskList(items, compact = false) {
+  if (!items.length)
+    return empty(
+      "Make space for what matters",
+      "Add a task from any life area. Choose its date when you are ready.",
+      "add-task",
+      "Add my task",
+    );
+  return items
+    .map((t) => {
+      const available =
+        t.done ||
+        (t.active &&
+          (t.recurrence !== "none"
+            ? t.due_today
+            : !t.due_date || t.due_date <= state.day));
+      const schedule = !t.active
+        ? "Paused"
+        : t.done
+          ? t.recurrence === "none"
+            ? `Completed ${dateLabel(t.completed_day)}`
+            : "Completed today"
+          : t.overdue
+            ? `Overdue · ${dateLabel(t.due_date)}`
+            : t.due_today
+              ? "Today"
+              : t.next_due
+                ? dateLabel(t.next_due)
+                : "No date yet";
+      return `<article class="task-row ${t.done ? "task-done" : ""}"><button class="plan-check ${t.done ? "done" : ""}" data-action="task-toggle" data-id="${t.id}" ${available ? "" : "disabled"} aria-label="${t.done ? "Undo" : "Complete"} ${esc(t.title)}">${t.done ? icon("check") : ""}</button><div class="task-body"><h3>${esc(t.title)}</h3><div class="task-meta">${tag(t.domain)}<span>${t.minutes} min</span><span class="${t.overdue ? "negative" : ""}">${schedule}</span>${t.priority === "high" ? '<span class="task-priority">High priority</span>' : ""}${t.recurrence !== "none" ? `<span>${{ daily: "Daily", weekdays: "Weekdays", weekly: "Weekly" }[t.recurrence]}</span>` : ""}</div>${t.interest ? `<p class="small muted">Interest: ${esc(t.interest)}</p>` : ""}${!compact && t.notes ? `<p class="small task-notes">${esc(t.notes)}</p>` : ""}<div class="task-controls">${btn(t.recurrence !== "none" ? "Edit routine" : "Edit", "edit-task", "light compact", `data-id="${t.id}"`)}${!t.done && t.recurrence === "none" ? btn("Move to tomorrow", "task-tomorrow", "ghost compact", `data-id="${t.id}"`) : ""}${!compact ? btn("Delete", "delete-task", "ghost compact", `data-id="${t.id}" aria-label="Delete ${esc(t.title)}"`) : ""}</div></div></article>`;
+    })
+    .join("");
+}
+function filteredTasks() {
+  return state.tasks.filter(
+    (t) =>
+      (taskArea === "all" || t.domain === taskArea) &&
+      (!taskQuery ||
+        `${t.title} ${t.interest} ${t.notes}`
+          .toLowerCase()
+          .includes(taskQuery.toLowerCase())) &&
+      {
+        today: t.due_today,
+        inbox: t.active && !t.done && !t.due_date,
+        upcoming: t.active && !t.done && t.next_due > state.day,
+        completed: t.done,
+        all: true,
+      }[taskFilter],
+  );
+}
+function dailyTasks() {
+  const p = state.task_summary,
+    suggested = state.actions
+      .filter((a) => a.status !== "skipped")
+      .reduce((sum, a) => sum + a.minutes, 0);
+  const over = p.committed_minutes + suggested - state.profile.daily_minutes;
+  return `<section class="card section-gap"><div class="card-header"><div><h2>My tasks today</h2><p class="muted">${p.completed_today} of ${p.planned_today} complete · ${p.remaining_minutes} min remaining</p></div>${btn(`${icon("plus")} Add task`, "add-task", "light compact")}</div>${taskList(state.tasks.filter((t) => t.due_today).slice(0, 4), true)}<div class="form-note">${over > 0 ? `Tasks and suggestions total ${p.committed_minutes + suggested} min, ${over} min above your daily development time. Move a task or adjust your available time.` : "Your tasks reserve time first. Suggestions use the time left in your daily development budget."}</div><button class="text-button" data-action="nav-tasks">View all my tasks</button></section>`;
+}
+function tasksView() {
+  const p = state.task_summary;
+  return `${heading("Make today your own.", "Plan the things you care about, across every part of your life.", btn(`${icon("plus")} Add my task`, "add-task"))}<div class="grid three">${metric("Today’s tasks", `${p.completed_today} / ${p.planned_today}`, "Completed from today’s scheduled tasks", "productivity")}${metric("Time still planned", `${p.remaining_minutes} min`, "Estimates you set for today’s tasks", "physical")}${metric("Steps this week", p.week_completions, "Recorded task completions · last 7 days", "learning")}</div><div class="grid main section-gap task-grid"><section class="card"><div class="task-tabs" role="group" aria-label="Task view">${[
+    ["today", "Today"],
+    ["inbox", "No date"],
+    ["upcoming", "Upcoming"],
+    ["completed", "Completed"],
+    ["all", "All tasks"],
+  ]
+    .map(
+      ([key, label]) =>
+        `<button data-action="task-filter" data-filter="${key}" aria-pressed="${taskFilter === key}" class="${taskFilter === key ? "active" : ""}">${label}</button>`,
+    )
+    .join(
+      "",
+    )}</div><div class="grid two task-search">${selectField("Life area", "task-area", [["all", "All areas"], ...domains], taskArea)}${field("Search tasks or interests", "task-search", "search", taskQuery, 'maxlength="150" placeholder="Search your tasks"')}</div><div id="task-list">${taskList(filteredTasks())}</div></section><div><section class="card"><h2>A small start in any area</h2><p class="small muted" style="margin:12px 0 20px">Choose an idea, then make it yours before saving.</p><div class="task-starters">${taskStarters.map(([d, title]) => `<button data-action="task-starter" data-domain="${d}">${tag(d)}<span>${esc(title)}</span>${icon("plus")}</button>`).join("")}</div></section><section class="card section-gap"><h2>Your week across life areas</h2><p class="small muted" style="margin:12px 0">Task completions, not a wellbeing score. You choose the balance that fits your life.</p>${domains.map((d) => `<div class="stat-pair">${tag(d)}<strong>${p.week_by_domain[d]}</strong></div>`).join("")}<div class="form-note">Recurring tasks return on their scheduled day. Completed occurrences stay in your record. Pause a routine whenever you need a break.</div></section></div></div>`;
+}
+function taskDialog(existing, starter) {
+  const t = existing || {
+    title: starter?.[1] || "",
+    domain: starter?.[0] || "learning",
+    interest: starter?.[2] || "",
+    minutes: starter?.[3] || 10,
+    priority: "normal",
+    due_date: state.day,
+    recurrence: "none",
+    active: true,
+  };
+  openDialog(
+    existing ? "Edit my task" : "Add something that matters to me",
+    dialogForm(
+      "task",
+      `${field("Task title", "title", "text", t.title, 'required minlength="2" maxlength="150" placeholder="What would you like to do?"')}<div class="grid two">${selectField("Life area", "domain", domains, t.domain)}${selectField("Priority", "priority", ["low", "normal", "high"], t.priority)}</div>${field("Interest or activity (optional)", "interest", "text", t.interest || "", 'maxlength="80" placeholder="Cricket, journaling, saving, Python…"')}<div class="grid two">${field("Date / routine start (optional)", "due_date", "date", t.due_date || "")}${field("Estimated minutes", "minutes", "number", t.minutes, 'required min="1" max="480"')}</div>${selectField(
+        "Repeat",
+        "recurrence",
+        [
+          ["none", "One time"],
+          ["daily", "Every day"],
+          ["weekdays", "Weekdays (Mon–Fri)"],
+          ["weekly", "Weekly on the start day"],
+        ],
+        t.recurrence,
+      )}${textArea("Why it matters / my next step (optional)", "notes", t.notes || "", 'maxlength="1000" placeholder="Choose a small step you can actually start."')}<label class="field-inline"><input type="checkbox" name="active" ${t.active ? "checked" : ""}>Task / routine is active</label><div class="form-note">A repeating routine needs a start date. Leave a one-time task undated to keep it in “No date”. Editing a routine changes future scheduling; recorded completions are retained.</div>`,
+      "Save task",
+      existing ? `data-id="${t.id}"` : "",
+    ),
+  );
+}
+function taskPayload(t) {
+  return {
+    title: t.title,
+    domain: t.domain,
+    interest: t.interest || "",
+    notes: t.notes || "",
+    priority: t.priority,
+    minutes: Number(t.minutes),
+    due_date: t.due_date || null,
+    recurrence: t.recurrence,
+    active: Boolean(t.active),
+  };
+}
+document.addEventListener("input", (e) => {
+  if (e.target.id === "task-search") {
+    taskQuery = e.target.value;
+    document.querySelector("#task-list").innerHTML = taskList(filteredTasks());
+  }
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id === "task-area") {
+    taskArea = e.target.value;
+    document.querySelector("#task-list").innerHTML = taskList(filteredTasks());
+  }
+});
 function scale(label, name, current) {
   return `<div class="field"><span id="label-${name}">${label}</span><div class="scale" role="group" aria-labelledby="label-${name}">${[1, 2, 3, 4, 5].map((n) => `<label><input type="radio" name="${name}" value="${n}" ${current === n ? "checked" : ""} aria-label="${label}, ${n} out of 5">${n}</label>`).join("")}</div><small>${name === "stress" ? "1 = low · 5 = high" : "1 = low · 5 = high"} · leave blank to skip</small></div>`;
 }
@@ -364,7 +513,7 @@ function dashboardProfile() {
 
 function settingsView() {
   const p = state.profile;
-  return `${heading("Build around your life.", "Tell your workspace what matters and how much time you want to give it.")}<div class="grid main"><section class="card"><form data-form="profile"><div class="form-error"></div><h2 style="margin-bottom:22px">Your direction</h2>${textArea("What would you like to become or change?", "aspiration", p.aspiration, 'maxlength="500" placeholder="For example: a consistent learner with more energy and financial clarity."')}<div class="field"><span>Areas you want to prioritize</span><div class="tag-picks">${domains.map((d) => `<label><input type="checkbox" name="priorities" value="${d}" ${p.priorities.includes(d) ? "checked" : ""}>${d}</label>`).join("")}</div><small>Choose at least one. Social and learning goals support communication and personal growth.</small></div>${field("Daily development time (minutes)", "daily_minutes", "number", p.daily_minutes, 'required min="5" max="240"')}<div class="grid two">${field("Timezone", "timezone", "text", p.timezone, 'required placeholder="Asia/Kolkata" maxlength="60"')}${selectField("Currency", "currency", ["INR", "USD", "EUR", "GBP"], p.currency)}</div><p class="small muted" style="margin:-6px 0 20px">Currency is locked while financial records exist to avoid relabeling amounts.</p><label class="field-inline"><input type="checkbox" name="reminders" ${p.reminders ? "checked" : ""}>Enable in-app reminders</label>${field("Daily check-in reminder hour (0–23)", "reminder_hour", "number", p.reminder_hour, 'required min="0" max="23"')}<button type="submit" class="button">Save my preferences</button></form></section><div><section class="card"><h2>Your data, your choice</h2><p class="small muted" style="margin-top:14px">Your records belong to your account. Export your check-ins, finances, goals and feedback whenever you need them.</p><div class="btn-row" style="margin-top:20px">${btn(`${icon("download")} Export my data`, "export", "light")}</div><div class="form-note">The plan uses transparent rules, recent personal baselines and your usefulness feedback. It is not a clinically validated assessment or a trained model that predicts health outcomes.</div>${btn("Enable browser reminders", "browser-reminders", "light")}</section><section class="card section-gap"><h2>Help shape a better workspace</h2><form data-form="feedback" style="margin-top:20px"><div class="form-error"></div>${selectField(
+  return `${heading("Build around your life.", "Tell your workspace what matters and how much time you want to give it.")}<div class="grid main"><section class="card"><form data-form="profile"><div class="form-error"></div><h2 style="margin-bottom:22px">Your direction</h2>${textArea("What would you like to become or change?", "aspiration", p.aspiration, 'maxlength="500" placeholder="For example: a consistent learner with more energy and financial clarity."')}<div class="field"><span>Areas you want to prioritize</span><div class="tag-picks">${domains.map((d) => `<label><input type="checkbox" name="priorities" value="${d}" ${p.priorities.includes(d) ? "checked" : ""}>${d}</label>`).join("")}</div><small>Choose at least one. Social and learning goals support communication and personal growth.</small></div>${field("Daily development time (minutes)", "daily_minutes", "number", p.daily_minutes, 'required min="5" max="240"')}<div class="grid two">${field("Timezone", "timezone", "text", p.timezone, 'required placeholder="Asia/Kolkata" maxlength="60"')}${selectField("Currency", "currency", ["INR", "USD", "EUR", "GBP"], p.currency)}</div><p class="small muted" style="margin:-6px 0 20px">Currency is locked while financial records exist to avoid relabeling amounts.</p><label class="field-inline"><input type="checkbox" name="reminders" ${p.reminders ? "checked" : ""}>Enable in-app reminders</label>${field("Daily check-in reminder hour (0–23)", "reminder_hour", "number", p.reminder_hour, 'required min="0" max="23"')}<button type="submit" class="button">Save my preferences</button></form></section><div><section class="card"><h2>Your data, your choice</h2><p class="small muted" style="margin-top:14px">Your records belong to your account. Export your tasks, check-ins, finances, goals and feedback whenever you need them.</p><div class="btn-row" style="margin-top:20px">${btn(`${icon("download")} Export my data`, "export", "light")}</div><div class="form-note">The plan uses transparent rules, recent personal baselines and your usefulness feedback. It is not a clinically validated assessment or a trained model that predicts health outcomes.</div>${btn("Enable browser reminders", "browser-reminders", "light")}</section><section class="card section-gap"><h2>Help shape a better workspace</h2><form data-form="feedback" style="margin-top:20px"><div class="form-error"></div>${selectField(
     "How useful has Evolve been?",
     "rating",
     [
@@ -382,6 +531,7 @@ function view() {
     today: todayView,
     profile: personalView,
     checkin: checkinView,
+    tasks: tasksView,
     goals: goalsView,
     wellbeing: wellbeingView,
     finance: financeView,
@@ -450,6 +600,29 @@ document.addEventListener("click", async (event) => {
   }
   if (action === "add-goal") {
     goalDialog();
+    return;
+  }
+  if (
+    action === "add-task" ||
+    action === "edit-task" ||
+    action === "task-starter"
+  ) {
+    taskDialog(
+      action === "edit-task"
+        ? state.tasks.find((t) => t.id === +node.dataset.id)
+        : null,
+      action === "task-starter"
+        ? taskStarters.find((t) => t[0] === node.dataset.domain)
+        : null,
+    );
+    return;
+  }
+  if (action === "task-filter") {
+    taskFilter = node.dataset.filter;
+    layout();
+    document
+      .querySelector(`.task-tabs [data-filter="${taskFilter}"]`)
+      .focus({ preventScroll: true });
     return;
   }
   if (action === "edit-goal") {
@@ -551,7 +724,7 @@ document.addEventListener("click", async (event) => {
       "Permanently delete this workspace?",
       dialogForm(
         "delete-account",
-        `<div class="notice" style="margin-bottom:20px">All check-ins, financial records, goals, habits, experiments and feedback for this account will be deleted.</div>${user.demo ? "" : field("Confirm your password", "password", "password", "", 'required autocomplete="current-password" maxlength="128"')}`,
+        `<div class="notice" style="margin-bottom:20px">All tasks, check-ins, financial records, goals, habits, experiments and feedback for this account will be deleted.</div>${user.demo ? "" : field("Confirm your password", "password", "password", "", 'required autocomplete="current-password" maxlength="128"')}`,
         "Delete permanently",
       ),
     );
@@ -576,6 +749,24 @@ document.addEventListener("click", async (event) => {
       await api("/plan", "POST", {});
       await refresh();
       toast("Your plan now fits your current context.");
+    } else if (action === "task-toggle") {
+      const t = state.tasks.find((t) => t.id === +node.dataset.id);
+      await api(`/tasks/${t.id}/completion`, "PUT", { complete: !t.done });
+      await refresh();
+      toast(
+        t.done
+          ? "Task completion removed."
+          : "Your step is recorded. Your plan now fits your tasks.",
+      );
+    } else if (action === "task-tomorrow") {
+      const t = state.tasks.find((t) => t.id === +node.dataset.id);
+      await api(
+        `/tasks/${t.id}`,
+        "PUT",
+        taskPayload({ ...t, due_date: addDays(state.day, 1), active: true }),
+      );
+      await refresh();
+      toast("Moved to tomorrow. Make space for the day you have.");
     } else if (action === "habit-toggle") {
       const h = state.habits.find((h) => h.id === +node.dataset.id);
       await api(`/habits/${h.id}/log`, "PUT", { complete: !h.done_today });
@@ -607,6 +798,7 @@ document.addEventListener("click", async (event) => {
     } else if (
       [
         "delete-goal",
+        "delete-task",
         "delete-habit",
         "delete-transaction",
         "delete-experiment",
@@ -616,6 +808,7 @@ document.addEventListener("click", async (event) => {
     ) {
       const mappings = {
         "delete-goal": `/goals/${node.dataset.id}`,
+        "delete-task": `/tasks/${node.dataset.id}`,
         "delete-habit": `/habits/${node.dataset.id}`,
         "delete-transaction": `/finance/transactions/${node.dataset.id}`,
         "delete-experiment": `/experiments/${node.dataset.id}`,
@@ -768,6 +961,12 @@ document.addEventListener("submit", async (event) => {
         form.dataset.id ? "PUT" : "POST",
         { ...data, progress: +data.progress },
       );
+    if (kind === "task")
+      await api(
+        form.dataset.id ? `/tasks/${form.dataset.id}` : "/tasks",
+        form.dataset.id ? "PUT" : "POST",
+        taskPayload({ ...data, active: f.has("active") }),
+      );
     if (kind === "progress")
       await api(`/goals/${form.dataset.id}`, "PATCH", {
         progress: +data.progress,
@@ -797,6 +996,7 @@ document.addEventListener("submit", async (event) => {
       });
     modal.close();
     await refresh();
+    document.querySelector("#main").focus({ preventScroll: true });
     toast("Saved to your workspace.");
   } catch (e) {
     form.querySelector(".form-error").innerHTML =
