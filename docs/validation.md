@@ -1,8 +1,8 @@
-# Validation — release 1 with daily task planner
+# Validation — release 1 with daily tasks and JWT/Google authentication
 
 ## Verified
 
-- **26 API integration/algorithm tests pass** with Python 3.12. The tests use isolated temporary databases.
+- **59 API integration/algorithm tests pass** with Python 3.12. The tests use isolated temporary databases.
 - JavaScript syntax checks pass for the browser application and helper modules.
 - A headless Chromium walkthrough exercises all nine views at desktop (1440 × 1050) and mobile (390 × 844) sizes, with no uncaught JavaScript errors or unintended body overflow.
 - Browser flows verified: isolated demo account, real account creation, preferences, goal creation, a transaction with decimal precision, randomized experiment creation and result logging, check-in update and plan refresh, and arithmetic scenario comparison.
@@ -33,3 +33,13 @@ Seven added tests cover six life areas, validation, private CRUD, completion/und
 A Chromium walkthrough at 1440 × 1050 and 390 × 844 verifies adding a task, completing/undoing it, automatic dashboard counts, interest search, moving to tomorrow, editing, reload persistence, creating/pausing a recurring routine and deleting it. No uncaught JavaScript errors or body overflow were observed. Desktop/mobile task screenshots were inspected. Syntax, Ruff E9/F, formatting and whitespace checks pass.
 
 The hosted demo's browser adapter is checked with Node for task CRUD, completion, validation, history, time reservation, export and reload from local storage. It remains an inspection demo; these checks do not establish a deployed Python backend or closed-tab reminder delivery.
+
+## JWT and Google authentication update
+
+JWT tests verify signature/algorithm restrictions, required claims, issuer/audience/expiry, server-side revocation, independent refresh credentials, refresh rotation/replay rejection, original session expiry, account isolation, CSRF protection, export secret exclusion and local/production signing-key configuration. Existing opaque-cookie users sign in again; account data is retained.
+
+Google tests validate real RS256 signatures using generated RSA keys and intercepted token/JWKS responses. They exercise PKCE, verified email, state-cookie binding, expiry/replay/cancellation, invalid signatures/claims, missing/malformed configuration, email collisions, password-confirmed linking, revoked link sessions, demo exclusion and matching-identity deletion of Google-only accounts. These are simulated-provider tests, not a live Google login.
+
+A Chromium walkthrough verifies password signup/login and wrong-password errors, HttpOnly JWT cookies, automatic restoration/refresh rotation after removing the access cookie, logout cookie removal, missing-configuration controls, and a 390-pixel mobile layout. A simulated Google redirect/provider with real signed ID tokens exercises browser signup, repeat login, Google-only deletion, wrong-password linking errors, successful explicit linking and Google login to the linked password account. No uncaught JavaScript errors were observed. Desktop/mobile screenshots were inspected. Priority checkboxes in preferences were corrected to retain a compact size.
+
+The dependency lock installs successfully. JavaScript syntax, Ruff E9/F, Ruff formatting and whitespace checks pass. No real Google credentials or public Python deployment were available; live sign-in verification remains pending. Follow [authentication setup](authentication.md) on the Python server. The separately hosted inspection demo does not implement JWT or real Google sign-in.

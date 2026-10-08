@@ -42,6 +42,8 @@ const labels = {
   notifications: "Reminders",
   settings: "Your preferences",
 };
+let authConfig = { google_enabled: false },
+  refreshPending;
 const money = (cents) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -56,12 +58,29 @@ function toast(message) {
   toastTimer = setTimeout(() => node.classList.remove("show"), 4500);
 }
 async function api(path, method = "GET", data) {
-  const response = await fetch(`/api${path}`, {
-    method,
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json", "X-Evolve-Request": "1" },
-    body: data === undefined ? undefined : JSON.stringify(data),
-  });
+  const request = () =>
+    fetch(`/api${path}`, {
+      method,
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "X-Evolve-Request": "1" },
+      body: data === undefined ? undefined : JSON.stringify(data),
+    });
+  let response = await request();
+  const renewable =
+    !path.startsWith("/auth/") ||
+    path === "/auth/me" ||
+    (path === "/auth/google/start" && data?.intent !== "login");
+  if (response.status === 401 && renewable) {
+    if (!refreshPending)
+      refreshPending = fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-Evolve-Request": "1" },
+      }).finally(() => {
+        refreshPending = null;
+      });
+    if ((await refreshPending).ok) response = await request();
+  }
   let body;
   try {
     body = await response.json();
@@ -84,6 +103,36 @@ async function api(path, method = "GET", data) {
   }
   return body;
 }
+function googleButton() {
+  return (
+    btn(
+      "Continue with Google",
+      "google-login",
+      "light",
+      authConfig.google_enabled
+        ? ""
+        : 'disabled title="Google sign-in is not configured on this server"',
+    ) +
+    (!authConfig.google_enabled
+      ? '<p class="small muted" style="margin-top:12px">Google sign-in is not enabled on this server yet. You can create an account with email and password.</p>'
+      : "")
+  );
+}
+function accountAccess() {
+  if (user.demo) return "";
+  const a = user.auth || {};
+  return `<section class="card section-gap"><h2>Account sign-in</h2><p class="small muted" style="margin:14px 0">${a.has_password ? "Email and password are available for this account." : "This account uses Google sign-in."} ${a.google_linked ? "Google is connected." : "Google is not connected."}</p>${!a.google_linked && a.has_password ? btn("Connect my Google account", "google-link", "light", a.google_enabled ? "" : 'disabled title="Google sign-in is not configured on this server"') : ""}${!a.google_enabled ? '<div class="form-note">Google sign-in has not been enabled on this server.</div>' : ""}<p class="small muted" style="margin-top:14px">${a.google_linked ? "Your connected Google account can sign you into this workspace." : "To connect Google, confirm your password and choose the account with the same email address."}</p></section>`;
+}
+async function startGoogle(intent = "login", password = "") {
+  const result = await api("/auth/google/start", "POST", { intent, password });
+  const target = new URL(result.url);
+  if (
+    target.origin !== "https://accounts.google.com" ||
+    target.pathname !== "/o/oauth2/v2/auth"
+  )
+    throw new Error("Unable to open Google sign-in.");
+  window.location.assign(target.href);
+}
 function heading(title, description, actions = "", eyebrow = "YOUR WORKSPACE") {
   return `<div class="page-heading"><div><span class="eyebrow">${eyebrow}</span><h1>${esc(title)}</h1><p>${esc(description)}</p></div><div class="btn-row">${actions}</div></div>`;
 }
@@ -93,7 +142,7 @@ function empty(title, text, action = "", button = "") {
 const brand = `<div class="brand"><div class="brand-mark">e</div><span>Evolve<span> AI</span><small>PERSONAL DEVELOPMENT OS</small></span></div>`;
 function showAuth(error = "") {
   route = "today";
-  app.innerHTML = `<div class="auth"><section class="auth-story">${brand}<div><div class="eyebrow">BUILD A LIFE THAT FITS YOU</div><h1>A little more<br>intentional.<br><em>Every day.</em></h1><p>A place to understand your patterns, choose your next step, and grow at a pace you can sustain.</p></div><div><div class="auth-dimensions"><span>${icon("wellbeing")} Mind & body</span><span>${icon("finance")} Financial awareness</span><span>${icon("goals")} Goals & consistency</span><span>${icon("insights")} Personal growth</span></div><p class="fine">Your goals. Your pace. Your data.</p></div></section><main class="auth-form" id="main"><div><div class="mini-brand">${brand}</div><h2>${authTab === "register" ? "Your next chapter starts here." : "Welcome back."}</h2><p>${authTab === "register" ? "Create your personal workspace and start with one achievable change." : "Pick up where you left off. A fresh start counts, too."}</p><div class="auth-tabs"><button class="${authTab === "register" ? "active" : ""}" data-action="auth-register">Create account</button><button class="${authTab === "login" ? "active" : ""}" data-action="auth-login">Sign in</button></div><form data-form="auth"><div class="form-error">${error ? `<div class="error" role="alert">${esc(error)}</div>` : ""}</div>${authTab === "register" ? field("Your name", "name", "text", "", 'required minlength="2" maxlength="80" autocomplete="name"') : ""}${field("Email address", "email", "email", "", 'required maxlength="254" autocomplete="email"')}${field("Password", "password", "password", "", "required " + (authTab === "register" ? 'minlength="10" autocomplete="new-password"' : 'autocomplete="current-password"') + ' maxlength="128"')}${authTab === "register" ? '<div class="small muted" style="margin:-8px 0 20px">Use at least 10 characters. This account stores personal records.</div>' : ""}<button class="button" type="submit">${authTab === "register" ? "Create my workspace" : "Sign in"}</button></form><div class="divider">OR EXPLORE FIRST</div>${btn("Try an interactive demo", "demo", "light")}<p class="fine">The demo uses fictional records in a separate, temporary account. Personal development guidance is educational and does not replace professional health or financial advice.</p></div></main></div>`;
+  app.innerHTML = `<div class="auth"><section class="auth-story">${brand}<div><div class="eyebrow">BUILD A LIFE THAT FITS YOU</div><h1>A little more<br>intentional.<br><em>Every day.</em></h1><p>A place to understand your patterns, choose your next step, and grow at a pace you can sustain.</p></div><div><div class="auth-dimensions"><span>${icon("wellbeing")} Mind & body</span><span>${icon("finance")} Financial awareness</span><span>${icon("goals")} Goals & consistency</span><span>${icon("insights")} Personal growth</span></div><p class="fine">Your goals. Your pace. Your data.</p></div></section><main class="auth-form" id="main"><div><div class="mini-brand">${brand}</div><h2>${authTab === "register" ? "Your next chapter starts here." : "Welcome back."}</h2><p>${authTab === "register" ? "Create your personal workspace and start with one achievable change." : "Pick up where you left off. A fresh start counts, too."}</p><div class="auth-tabs"><button class="${authTab === "register" ? "active" : ""}" data-action="auth-register">Create account</button><button class="${authTab === "login" ? "active" : ""}" data-action="auth-login">Sign in</button></div><form data-form="auth"><div class="form-error">${error ? `<div class="error" role="alert">${esc(error)}</div>` : ""}</div>${authTab === "register" ? field("Your name", "name", "text", "", 'required minlength="2" maxlength="80" autocomplete="name"') : ""}${field("Email address", "email", "email", "", 'required maxlength="254" autocomplete="email"')}${field("Password", "password", "password", "", "required " + (authTab === "register" ? 'minlength="10" autocomplete="new-password"' : 'autocomplete="current-password"') + ' maxlength="128"')}${authTab === "register" ? '<div class="small muted" style="margin:-8px 0 20px">Use at least 10 characters. This account stores personal records.</div>' : ""}<button class="button" type="submit">${authTab === "register" ? "Create my workspace" : "Sign in"}</button></form><div class="divider">OR CONTINUE WITH</div>${googleButton()}<div class="divider">OR EXPLORE FIRST</div>${btn("Try an interactive demo", "demo", "light")}<p class="fine">The demo uses fictional records in a separate, temporary account. Personal development guidance is educational and does not replace professional health or financial advice.</p></div></main></div>`;
 }
 function layout() {
   const unread = notices.filter((n) => !n.read).length;
@@ -524,7 +573,7 @@ function settingsView() {
       [1, "1 — Not useful"],
     ],
     5,
-  )}${textArea("What worked, or what should improve?", "message", "", 'maxlength="2000"')}<button class="button light" type="submit">Share feedback</button></form></section><section class="card section-gap"><h2>Delete this workspace</h2><p class="small muted" style="margin:14px 0 18px">Deleting your account permanently removes its records and sessions.</p>${btn(user.demo ? "Delete demo workspace" : "Delete my account", "delete-account", "danger")}</section></div></div>`;
+  )}${textArea("What worked, or what should improve?", "message", "", 'maxlength="2000"')}<button class="button light" type="submit">Share feedback</button></form></section>${accountAccess()}<section class="card section-gap"><h2>Delete this workspace</h2><p class="small muted" style="margin:14px 0 18px">Deleting your account permanently removes its records and sessions.</p>${btn(user.demo ? "Delete demo workspace" : "Delete my account", "delete-account", "danger")}</section></div></div>`;
 }
 function view() {
   return {
@@ -719,7 +768,26 @@ document.addEventListener("click", async (event) => {
     );
     return;
   }
+  if (action === "google-link") {
+    openDialog(
+      "Connect my Google account",
+      dialogForm(
+        "google-link",
+        `<p class="small muted" style="margin-bottom:18px">Confirm your password, then choose the Google account matching ${esc(user.email)}.</p>${field("Confirm account password", "password", "password", "", 'required autocomplete="current-password" maxlength="128"')}`,
+        "Continue to Google",
+      ),
+    );
+    return;
+  }
   if (action === "delete-account") {
+    if (!user.demo && user.auth && !user.auth.has_password) {
+      openDialog(
+        "Permanently delete this workspace?",
+        `<p class="small muted" style="margin-bottom:18px">Confirm with your connected Google account to permanently delete this workspace and all its records.</p><div class="btn-row">${btn("Confirm deletion with Google", "google-delete", "danger")}${btn("Keep my account", "close-dialog", "light")}</div>`,
+      );
+      return;
+    }
+
     openDialog(
       "Permanently delete this workspace?",
       dialogForm(
@@ -735,7 +803,9 @@ document.addEventListener("click", async (event) => {
   const disabledBefore = node.disabled;
   node.disabled = true;
   try {
-    if (action === "demo") {
+    if (action === "google-login" || action === "google-delete") {
+      await startGoogle(action === "google-delete" ? "delete" : "login");
+    } else if (action === "demo") {
       user = await api("/auth/demo", "POST", {});
       route = "today";
       await refresh();
@@ -868,6 +938,10 @@ document.addEventListener("submit", async (event) => {
   const kind = form.dataset.form;
   form.querySelector(".form-error").innerHTML = "";
   try {
+    if (kind === "google-link") {
+      await startGoogle("link", data.password);
+      return;
+    }
     if (kind === "auth") {
       user = await api(
         `/auth/${authTab}`,
@@ -1057,16 +1131,39 @@ async function poll() {
 }
 setInterval(poll, 30000);
 async function start() {
+  const params = new URLSearchParams(location.search),
+    errorCode = params.get("auth_error");
+  const messages = {
+    "google-cancelled": "Google sign-in was cancelled. You can try again.",
+    "google-unavailable":
+      "Google sign-in could not be completed. Please try again or use your password.",
+    "account-exists":
+      "An account already uses this email. Sign in with your password, then connect Google in Your preferences.",
+    "different-account":
+      "Choose the Google account matching your existing account.",
+    "expired-session":
+      "Your sign-in session expired. Sign in again before connecting Google.",
+  };
+  const message = messages[errorCode];
+  if (params.has("auth") || params.has("auth_error"))
+    history.replaceState(null, "", location.pathname + location.hash);
+  try {
+    authConfig = await api("/auth/config");
+  } catch {
+    showAuth("Could not reach the server. Reload to try again.");
+    return;
+  }
   try {
     user = await api("/auth/me");
     route = labels[location.hash.slice(1)] ? location.hash.slice(1) : "today";
     await refresh();
+    if (message) toast(message);
+    if (params.get("auth") === "google-linked")
+      toast("Google is connected to your account.");
   } catch (e) {
-    if (e.message.includes("sign in")) showAuth();
-    else {
-      showAuth();
-      toast(e.message);
-    }
+    showAuth(message || (e.message.includes("sign in") ? "" : e.message));
+    if (params.get("auth") === "account-deleted")
+      toast("Your account and its records were deleted.");
   }
 }
 start();

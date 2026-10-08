@@ -72,6 +72,18 @@ CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS auth_attempts_key ON auth_attempts(key,at);
 CREATE INDEX IF NOT EXISTS tasks_user_due ON tasks(user_id,due_date);
 INSERT OR IGNORE INTO schema_version VALUES(2);
+CREATE TABLE IF NOT EXISTS app_keys(name TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS refresh_tokens(
+ token_hash TEXT PRIMARY KEY, session_hash TEXT NOT NULL REFERENCES sessions(token_hash) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS identities(
+ provider TEXT NOT NULL, subject TEXT NOT NULL,
+ user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+ email TEXT NOT NULL, PRIMARY KEY(provider,subject), UNIQUE(user_id,provider));
+CREATE TABLE IF NOT EXISTS oauth_attempts(
+ state_hash TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL,
+ expires_at TEXT NOT NULL, intent TEXT NOT NULL,
+ user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, session_hash TEXT);
+INSERT OR IGNORE INTO schema_version VALUES(3);
 """
 
 

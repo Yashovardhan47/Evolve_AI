@@ -91,6 +91,11 @@ class Login(Model):
     password: str = Field(max_length=128)
 
 
+class GoogleStart(Model):
+    intent: Literal["login", "link", "delete"] = "login"
+    password: str = Field(default="", max_length=128)
+
+
 class Checkin(Model):
     day: date | None = None
     sleep_hours: float | None = Field(default=None, ge=0, le=24)

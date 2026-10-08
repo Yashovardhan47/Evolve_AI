@@ -10,6 +10,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from . import models as m
+from . import google_auth
 from .db import connect, initialize
 from .demo import create_demo
 from .engine import (
@@ -22,12 +23,14 @@ from .engine import (
     today,
 )
 from .security import (
-    COOKIE,
     current_user,
-    digest,
+    clear_cookies,
     now,
     password_hash,
     session,
+    signing_key,
+    refresh_session,
+    revoke_session,
     throttle,
     verify,
 )
@@ -40,6 +43,7 @@ FRONTEND = ROOT / "frontend"
 @asynccontextmanager
 async def lifespan(app):
     initialize()
+    signing_key()
     with connect() as con:
         con.execute("DELETE FROM users WHERE demo=1 AND demo_expires<?", (now(),))
     yield
@@ -101,6 +105,7 @@ def public_user(user):
         "email": user["email"] if not user["demo"] else "",
         "profile": profile(user),
         "demo": bool(user["demo"]),
+        "auth": google_auth.auth_status(user),
     }
 
 
@@ -146,7 +151,7 @@ def register(data: m.Register, request: Request, response: Response):
                 "Unable to create this account. Try signing in or use another email.",
             )
         user = dict(con.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone())
-    session(response, uid)
+    session(response, uid, request=request)
     return public_user(user)
 
 
@@ -157,11 +162,15 @@ def login(data: m.Login, request: Request, response: Response):
         user = con.execute(
             "SELECT * FROM users WHERE email=? AND demo=0", (data.email.lower(),)
         ).fetchone()
-    # Also spend password hashing time when the email is absent.
-    stored = user["password_hash"] if user else "00" * 16 + ":" + "00" * 64
+    # Also spend password hashing time for absent and Google-only accounts.
+    stored = (
+        user["password_hash"]
+        if user and user["password_hash"]
+        else "00" * 16 + ":" + "00" * 64
+    )
     if not verify(data.password, stored) or not user:
         raise HTTPException(401, "Email or password is incorrect")
-    session(response, user["id"])
+    session(response, user["id"], request=request)
     return public_user(dict(user))
 
 
@@ -169,7 +178,7 @@ def login(data: m.Login, request: Request, response: Response):
 def demo(request: Request, response: Response):
     throttle(request, "demo")
     user = create_demo()
-    session(response, user["id"], True)
+    session(response, user["id"], True, request=request)
     return public_user(user)
 
 
@@ -180,13 +189,29 @@ def me(user=Depends(current_user)):
 
 @app.post("/api/auth/logout")
 def logout(request: Request, response: Response):
-    with connect() as con:
-        con.execute(
-            "DELETE FROM sessions WHERE token_hash=?",
-            (digest(request.cookies.get(COOKIE, "")),),
-        )
-    response.delete_cookie(COOKIE, path="/")
+    revoke_session(request)
+    clear_cookies(response)
     return {"ok": True}
+
+
+@app.get("/api/auth/config")
+def auth_configuration():
+    return google_auth.auth_status()
+
+
+@app.post("/api/auth/refresh")
+def refresh(request: Request, response: Response):
+    return public_user(refresh_session(request, response))
+
+
+@app.post("/api/auth/google/start")
+def google_start(data: m.GoogleStart, request: Request, response: Response):
+    return google_auth.begin(data, request, response)
+
+
+@app.get("/api/auth/google/callback")
+def google_callback(request: Request):
+    return google_auth.finish(request)
 
 
 @app.put("/api/profile")
@@ -796,10 +821,14 @@ def delete_account(
     data: m.DeleteAccount, response: Response, user=Depends(current_user)
 ):
     if not user["demo"] and not verify(data.password, user["password_hash"]):
+        if not user["password_hash"]:
+            raise HTTPException(
+                409, "Confirm account deletion by signing in with Google again"
+            )
         raise HTTPException(401, "Password is incorrect")
     with connect() as con:
         con.execute("DELETE FROM users WHERE id=?", (user["id"],))
-    response.delete_cookie(COOKIE, path="/")
+    clear_cookies(response)
     return {"ok": True}
 
 

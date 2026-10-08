@@ -1004,6 +1004,12 @@ small,
 }
 .tag-picks input {
   accent-color: var(--green);
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  padding: 0;
+  flex: 0 0 16px;
 }
 .notice {
   border-left: 3px solid var(--orange);

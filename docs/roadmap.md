@@ -2,7 +2,7 @@
 
 ## Release 1 — implemented
 
-The account-owned personal development loop, responsive interface, personal profile, state aggregation, adaptive recommendation ranking, goals/habits, interest-based daily tasks, recurring routines, daily reflections, financial awareness, randomized routine experiments, arithmetic scenarios, reminders, data controls and feedback capture are working end to end. Task estimates reserve development time and the dashboard shows daily progress and overload.
+The account-owned personal development loop, responsive interface, personal profile, state aggregation, adaptive recommendation ranking, goals/habits, interest-based daily tasks, recurring routines, daily reflections, financial awareness, randomized routine experiments, arithmetic scenarios, reminders, data controls and feedback capture are working end to end. Task estimates reserve development time and the dashboard shows daily progress and overload. JWT sessions with rotating refresh credentials and Google OpenID Connect sign-in/linking are implemented; live Google verification requires server OAuth configuration.
 
 ## Strongest advanced direction
 

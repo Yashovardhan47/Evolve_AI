@@ -7,6 +7,13 @@ from app.main import app
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("EVOLVE_DB", str(tmp_path / "test.db"))
     monkeypatch.setenv("EVOLVE_SECURE_COOKIES", "false")
+    monkeypatch.setenv("EVOLVE_JWT_SECRET", "test-only-secret-at-least-32-characters")
+    for key in (
+        "EVOLVE_GOOGLE_CLIENT_ID",
+        "EVOLVE_GOOGLE_CLIENT_SECRET",
+        "EVOLVE_GOOGLE_REDIRECT_URI",
+    ):
+        monkeypatch.delenv(key, raising=False)
     with TestClient(app, headers={"X-Evolve-Request": "1"}) as c:
         yield c
 

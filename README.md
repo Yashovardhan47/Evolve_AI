@@ -6,7 +6,8 @@ Evolve combines daily self-reflection, physical and mental wellbeing observation
 
 ## What works
 
-- Account creation, sign-in and sign-out with salted scrypt password hashes and expiring HttpOnly sessions.
+- Email/password sign-in with salted scrypt hashes, signed 15-minute JWT access cookies, rotating HttpOnly refresh credentials and immediate logout revocation. Access JWTs are also accepted as Bearer tokens; the browser keeps both credentials out of JavaScript storage.
+- Google OpenID Connect sign-up/sign-in with code exchange, PKCE, state/nonce protection and RS256 identity validation. Existing password accounts require explicit password-confirmed linking. Google sign-in is enabled only when the Python server's OAuth credentials and redirect URI are configured; see [authentication setup](docs/authentication.md).
 - A responsive dashboard, eleven functional views, accessible forms, data charts and reduced-motion support.
 - A separate personal Profile page with optional contact/location, education, occupation, interests, strengths, challenges, routine and development direction. The dashboard reflects saved names and profile context.
 - Optional daily mood, energy, stress, focus, sleep, movement and task check-ins. Missing entries stay missing.
@@ -21,12 +22,12 @@ Evolve combines daily self-reflection, physical and mental wellbeing observation
 - A what-if calculator for time commitments and recorded spending. Its output is arithmetic, not a predicted health or financial outcome.
 - In-app reminders for daily check-ins, remaining tasks, goal dates and budget reviews; optional browser notifications while the tab is open.
 - Editable priorities, timezone, currency, daily time budget and reminder preferences.
-- User feedback, complete JSON data export, deletion of individual records, and password-confirmed account deletion with cascading data removal.
+- User feedback, complete JSON data export, deletion of individual records, and password-confirmed account deletion with cascading data removal. Google-only accounts confirm deletion through their connected Google identity.
 - Separate demo accounts populated with fictional records; 24-hour expiry and cleanup at startup and on demo creation.
 
 ## Hosted inspection demo
 
-[Open the interactive demo](https://evolve-ai-demo.kummarayashovardhan.chatgpt.site). This separate hosted demo uses fictional browser-local records; it includes My tasks, recurring routines, Profile and the dashboard but does not run the Python API.
+[Open the interactive demo](https://evolve-ai-demo.kummarayashovardhan.chatgpt.site). This separate hosted demo uses fictional browser-local records; it includes My tasks, recurring routines, Profile and the dashboard but does not run the Python API, JWT sessions or Google sign-in. Authentication runs in the Python application.
 
 ## Run locally — Windows PowerShell
 
@@ -58,7 +59,7 @@ Create an account for an empty personal workspace, or choose **Try an interactiv
 docker compose up --build
 ```
 
-The named volume preserves SQLite records across container restarts. This runs on localhost HTTP by default. Before using a real HTTPS domain, set `EVOLVE_SECURE_COOKIES=true`, terminate TLS at a trusted reverse proxy and configure `EVOLVE_ORIGINS` only if needed. See [deployment](docs/deployment.md).
+The named volume preserves SQLite records across container restarts. This runs on localhost HTTP by default. Before using a real HTTPS domain, set `EVOLVE_SECURE_COOKIES=true`, supply `EVOLVE_JWT_SECRET`, terminate TLS at a trusted reverse proxy and configure `EVOLVE_ORIGINS` only if needed. See [deployment](docs/deployment.md).
 
 ## Verify
 
@@ -74,6 +75,6 @@ From the root, `node --check frontend/app.js` checks JavaScript syntax. The API 
 
 The frontend calls same-origin `/api` routes; FastAPI validates requests; SQLite stores account-owned data; the recommendation engine computes context and prioritizes feasible actions. [Architecture](docs/architecture.md) describes the model and algorithm. OpenAPI is available at `/openapi.json`, and readiness at `/api/health`.
 
-This is a working first release, not evidence of clinically validated wellbeing improvement or guaranteed user outcomes. The recommendation engine is an interpretable adaptive baseline, not an LLM or a medically validated digital twin. Causal counterfactual prediction, wearable/bank connections, Google OAuth, verified email/password recovery, push delivery with the app closed, encryption-at-rest infrastructure and large-scale database deployment are not implemented. These boundaries are visible in the interface and [roadmap](docs/roadmap.md).
+This is a working first release, not evidence of clinically validated wellbeing improvement or guaranteed user outcomes. The recommendation engine is an interpretable adaptive baseline, not an LLM or a medically validated digital twin. Causal counterfactual prediction, wearable/bank connections, verified email/password recovery, push delivery with the app closed, encryption-at-rest infrastructure and large-scale database deployment are not implemented. These boundaries are visible in the interface and [roadmap](docs/roadmap.md).
 
 MIT licensed. Built for Yashovardhan's AI Personal Development OS project.
